@@ -1,2 +1,2 @@
 # Swift
-Lý thuyết và thực hành Sừit cơ bản
+Lý thuyết và thực hành Swift cơ bản
