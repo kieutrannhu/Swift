@@ -414,7 +414,7 @@ person?.sayHello()
 person = nil // ✅ Person được giải phóng
 ```
 ```[weak self]``` giúp self không bị giữ mạnh, tránh retain cycle.
-### 3. Closure Lưu Trữ Ở Stack Hay Heap?
+## 3. Closure Lưu Trữ Ở Stack Hay Heap?
 - Closure đơn giản (không bắt giữ biến): lưu trữ tại Stack
 - Closure bắt giữ biến bên ngoài: lưu trữ tại Heap ()
 
