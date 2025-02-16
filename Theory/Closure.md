@@ -417,7 +417,8 @@ person = nil // ✅ Person được giải phóng
 ### 3. Closure Lưu Trữ Ở Stack Hay Heap?
 - Closure đơn giản (không bắt giữ biến): lưu trữ tại Stack
 - Closure bắt giữ biến bên ngoài: lưu trữ tại Heap ()
-  Ví dụ so sánh
+
+Ví dụ so sánh
   
 ✅ Closure KHÔNG bắt giữ biến (Lưu trên Stack)
 ```
