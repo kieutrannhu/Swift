@@ -391,7 +391,7 @@ person = nil // ❌ Person không được giải phóng do retain cycle
 ```
 Lỗi retain cycle xảy ra vì greeting giữ mạnh self, ngăn Person bị giải phóng.
 
-🟩 Sử dụng [weak self] để tránh retain cycle
+🟩 Sử dụng ```[weak self]``` để tránh retain cycle
 ```
 class Person {
     var name: String
@@ -417,7 +417,8 @@ person = nil // ✅ Person được giải phóng
 ### 3. Closure Lưu Trữ Ở Stack Hay Heap?
 - Closure đơn giản (không bắt giữ biến): lưu trữ tại Stack
 - Closure bắt giữ biến bên ngoài: lưu trữ tại Heap ()
-- Ví dụ so sánh
+  Ví dụ so sánh
+  
 ✅ Closure KHÔNG bắt giữ biến (Lưu trên Stack)
 ```
 let simpleClosure = { print("Hello, Swift!") }
