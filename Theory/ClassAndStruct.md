@@ -399,7 +399,7 @@ print(point.x) // Output: 10
 - Khi gán biến: ```class``` tạo tham chiếu còn ```struct``` tạo bản sao độc lập
 - ```class``` có Deinitializer ```(deinit)``` còn ```struct``` không có
 - Mutability(khả năng biến đổi) ```class``` dùng ```var``` còn ```struct``` dùng ```mutating```
-- 
+  
 ### Khi Nào Dùng ```class``` Thay Vì ```struct```?
 
 Dùng ```class``` khi:
