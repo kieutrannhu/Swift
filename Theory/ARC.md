@@ -273,10 +273,246 @@ Cách khắc phục:
   
 - Trong các ```closure```, sử dụng danh sách nắm giữ (capture list) với ```[weak self]``` hoặc ```[unowned self]``` để ngăn chặn chu trình tham chiếu mạnh giữa đối tượng và ```closure```.
 
+## Mở rộng
+### Trỏ treo (dangling pointers)
 
+Trỏ treo ```(Dangling Pointer)``` là một con trỏ tham chiếu đến một vùng bộ nhớ đã bị giải phóng hoặc không còn hợp lệ, gây ra lỗi truy cập bộ nhớ hoặc hành vi không xác định ```(undefined behavior)```.
 
+🚨 Trong Swift, dangling pointers ít xảy ra do cơ chế Automatic Reference Counting (ARC) và không có con trỏ trực tiếp như trong C/C++. 
+Tuy nhiên, chúng vẫn có thể xuất hiện trong một số trường hợp đặc biệt, như ```unowned references```, ```Unsafe Pointers```, hoặc khi làm việc với Objective-C APIs.
 
+#### Ví Dụ 1: Trỏ Treo Với ```unowned Reference```
+Nếu một biến ```unowned``` tham chiếu đến một đối tượng đã bị ```deallocated```, truy cập nó sẽ gây lỗi crash.
 
+```
+class Person {
+    var name: String
+    var card: CreditCard?
+
+    init(name: String) {
+        self.name = name
+    }
+
+    deinit {
+        print("\(name) is being deinitialized")
+    }
+}
+
+class CreditCard {
+    var number: String
+    unowned var owner: Person  // Không thể là nil, nhưng có nguy cơ trở thành dangling pointer
+
+    init(number: String, owner: Person) {
+        self.number = number
+        self.owner = owner
+    }
+
+    deinit {
+        print("Credit Card \(number) is being deinitialized")
+    }
+}
+
+// Tạo một đối tượng Person
+var bob: Person? = Person(name: "Bob")
+var card: CreditCard? = CreditCard(number: "1234-5678", owner: bob!)
+
+bob = nil  // Bob bị deallocated, nhưng card vẫn giữ `unowned owner`
+print(card?.owner.name)  // ❌ Lỗi: Truy cập bộ nhớ đã bị giải phóng
+```
+
+📌 Lỗi xảy ra:
+
+```bob``` bị giải phóng khi gán ```nil```.
+
+```card?.owner``` bây giờ là dangling pointer, nhưng vẫn trỏ đến vùng nhớ cũ.
+Truy cập ```owner.name``` sẽ gây crash!
+
+✅ Cách khắc phục:
+
+Dùng ```weak var owner: Person?``` thay vì ```unowned``` nếu đối tượng có thể bị giải phóng.
+
+#### Ví Dụ 2: Trỏ Treo Khi Sử Dụng ```UnsafePointer```
+ 
+Trong Swift, ```UnsafePointer``` cho phép truy cập trực tiếp vào vùng nhớ như trong C/C++. Tuy nhiên, nếu sử dụng sai, bạn có thể gặp trỏ treo (dangling pointers) – con trỏ trỏ đến vùng nhớ đã bị giải phóng hoặc không hợp lệ, dẫn đến lỗi truy cập bộ nhớ ```(undefined behavior)``` hoặc crash chương trình.
+
+#### Trỏ Treo Khi Trả Về ```UnsafePointer``` Từ Biến Cục Bộ
+
+❌ Ví dụ Lỗi: Trả về con trỏ trỏ vào biến cục bộ
+
+```
+func getPointer() -> UnsafePointer<Int> {
+    var number = 42
+    return UnsafePointer(&number)  // ❌ Trả về con trỏ trỏ đến biến cục bộ
+}
+
+let ptr = getPointer()
+print(ptr.pointee)  // ❌ Lỗi: Truy cập bộ nhớ đã bị giải phóng
+```
+
+📌 Lỗi xảy ra:
+
+```number``` là biến cục bộ, được lưu trên ```stack```.
+
+Khi ```getPointer()``` kết thúc, biến ```number``` bị giải phóng, nhưng ```ptr``` vẫn trỏ vào đó.
+
+Truy cập ```ptr.pointee``` sẽ dẫn đến hành vi không xác định ```(undefined behavior)```.
+
+✅ Cách sửa: Sử dụng cấp phát bộ nhớ động ```(malloc)``` hoặc biến toàn cục.
+
+✅ Cách Đúng: Dùng ```withUnsafePointer```
+
+```
+func getPointerSafely() {
+    var number = 42
+    withUnsafePointer(to: &number) { ptr in
+        print(ptr.pointee)  // ✅ Hợp lệ vì số vẫn còn trong phạm vi hàm
+    }
+}
+
+getPointerSafely()  // Output: 42
+```
+
+📌 Lý do đúng:
+
+```withUnsafePointer(to:)``` đảm bảo number vẫn tồn tại trong suốt thời gian ```closure``` chạy.
+
+Khi ```withUnsafePointer``` kết thúc, con trỏ không còn hợp lệ, tránh lỗi.
+
+#### Trỏ Treo Khi Dùng ```UnsafeMutablePointer```
+
+❌ Ví dụ Lỗi: Dùng con trỏ trỏ đến vùng nhớ đã bị giải phóng
+
+```
+func createPointer() -> UnsafeMutablePointer<Int> {
+    let ptr = UnsafeMutablePointer<Int>.allocate(capacity: 1)
+    ptr.initialize(to: 100)
+    ptr.deallocate()  // ❌ Giải phóng bộ nhớ ngay lập tức
+    return ptr
+}
+
+let ptr = createPointer()
+print(ptr.pointee)  // ❌ Lỗi: Truy cập vùng nhớ đã giải phóng
+```
+
+📌 Lỗi xảy ra:
+
+```ptr``` được cấp phát động, nhưng bị giải phóng ngay sau khi cấp phát.
+
+Khi truy cập ```ptr.pointee```, nó trỏ vào vùng nhớ không hợp lệ, gây crash hoặc lỗi không xác định.
+
+✅ Cách sửa: Không giải phóng bộ nhớ quá sớm.
+
+✅ Cách Đúng: Giải phóng bộ nhớ sau khi sử dụng
+
+```
+func createPointerSafely() -> UnsafeMutablePointer<Int> {
+    let ptr = UnsafeMutablePointer<Int>.allocate(capacity: 1)
+    ptr.initialize(to: 100)
+    return ptr  // Không giải phóng ngay
+}
+
+let ptr = createPointerSafely()
+print(ptr.pointee)  // ✅ Output: 100
+
+ptr.deallocate()  // ✅ Giải phóng sau khi sử dụng
+```
+
+📌 Lý do đúng:
+
+Chỉ ```deallocate()``` khi chắc chắn không còn cần con trỏ.
+
+#### Trỏ Treo Khi Làm Việc Với Mảng (UnsafeBufferPointer)
+❌ Ví dụ Lỗi: Trả về con trỏ trỏ vào vùng nhớ tạm thời
+
+```
+func getBufferPointer() -> UnsafeBufferPointer<Int> {
+    let array = [1, 2, 3]
+    return UnsafeBufferPointer(start: array, count: array.count) // ❌ Trỏ vào vùng nhớ bị giải phóng
+}
+
+let buffer = getBufferPointer()
+print(buffer[0])  // ❌ Lỗi: Truy cập vào vùng nhớ không hợp lệ
+```
+
+📌 Lỗi xảy ra:
+
+```array``` là biến cục bộ, bị giải phóng khi ```getBufferPointer()``` kết thúc.
+
+```UnsafeBufferPointer``` vẫn trỏ vào vùng nhớ cũ, gây lỗi.
+
+✅ Cách sửa: Giữ ```array``` sống đủ lâu hoặc dùng ```withUnsafeBufferPointer```.
+
+✅ Cách Đúng: Dùng ```withUnsafeBufferPointer```
+
+```
+let array = [1, 2, 3]
+
+array.withUnsafeBufferPointer { buffer in
+    print(buffer[0])  // ✅ Output: 1
+}
+```
+
+📌 Lý do đúng:
+
+```withUnsafeBufferPointer``` đảm bảo vùng nhớ của ```array``` tồn tại trong suốt ```closure```.
+
+#### 🚀 Tóm lại:
+
+Không bao giờ trả về con trỏ trỏ vào biến cục bộ.
+
+Không giải phóng bộ nhớ quá sớm khi vẫn còn sử dụng con trỏ.
+
+Dùng ```withUnsafePointer``` hoặc ```withUnsafeBufferPointer``` để tránh lỗi.
+
+⚠️ Chỉ dùng ```UnsafePointer``` khi thực sự cần hiệu suất cao hoặc làm việc với C API!
+
+#### Ví Dụ 3: Trỏ Treo Với Objective-C API
+Khi sử dụng Core Foundation hoặc Objective-C APIs, có thể xảy ra lỗi trỏ treo do cách quản lý bộ nhớ khác nhau.
+
+```
+import Foundation
+
+class MyClass {
+    var callback: (() -> Void)?
+
+    deinit {
+        print("MyClass is being deinitialized")
+    }
+}
+
+var obj: MyClass? = MyClass()
+obj?.callback = {
+    print("Callback executed")
+}
+
+obj = nil  // ❌ Nếu callback vẫn giữ `self`, có thể gây dangling reference
+```
+✅ Cách khắc phục:
+
+Sử dụng ```[weak self]``` trong ```closures``` để tránh giữ tham chiếu không hợp lệ.
+
+```
+obj?.callback = { [weak obj] in
+    print("Callback executed safely")
+}
+```
+
+#### Tóm Tắt
+✅ Trỏ treo xảy ra khi:
+
+Dùng unowned reference trỏ đến một đối tượng đã bị giải phóng.
+
+Dùng UnsafePointer trỏ đến bộ nhớ không còn hợp lệ.
+
+Khi làm việc với Objective-C APIs, không xử lý memory management đúng cách.
+
+✅ Cách tránh:
+
+Dùng weak thay vì unowned nếu đối tượng có thể bị nil.
+
+Không sử dụng con trỏ không an toàn (UnsafePointer) trỏ vào biến cục bộ.
+
+Cẩn thận với memory management khi dùng Objective-C APIs.
 
 
 
