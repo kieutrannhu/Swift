@@ -18,7 +18,7 @@ ARC hoạt động bằng cách theo dõi số lượng tham chiếu mạnh đ�
 - Khi số lượng tham chiếu của một đối tượng đạt đến 0, nghĩa là không còn tham chiếu mạnh nào đến đối tượng đó. ARC giải phóng bộ nhớ mà đối tượng đó đang chiếm giữ.
 
 -> Không cần phải nghĩ về việc giải phóng bộ nhớ mỗi khi tạo một đối tượng
-```
+``` Swift
 class MyClass {
     var name: String
 
@@ -50,7 +50,7 @@ Tuy nhiên, tham chiếu mạnh có thể dẫn đến vấn đề  Retain cycle
 
 Cách xử lý vấn đề Retain cycle là sử dụng ```weak reference``` (tham chiếu yếu) hoặc ```unowned reference``` (tham chiếu không sở hữu)
 
-```
+``` Swift
 class Person {
     let name: String
     init(name: String) { self.name = name }
@@ -88,7 +88,7 @@ Mỗi ```Person``` có thể có ```Apartment```, và mỗi ```Apartment``` có 
 
 Khi gán ```nil``` cho ```john``` và ```unit4A```, cả hai đối tượng đều được giải phóng, và không có rò rỉ bộ nhớ nào xảy ra.
 
-```
+``` Swift
 unowned var tenant: Person?
 ```
 
@@ -104,7 +104,7 @@ Vì nó có thể trở thành ```nil``` bất cứ lúc nào.
 Khi đối tượng mà nó tham chiếu không còn tồn tại, tham chiếu yếu sẽ tự động trở thành ```nil```.
 
 Ví dụ:
-```
+``` Swift
 class Person {
     let name: String
     weak var friend: Person?
@@ -139,7 +139,7 @@ Không tự động trở thành ```nil``` khi đối tượng mà nó tham chi�
 Do đó, nên chỉ sử dụng tham chiếu không sở hữu khi chắc chắn rằng đối tượng mà nó tham chiếu sẽ luôn tồn tại trong thời gian mà tham chiếu không sở hữu tồn tại.
 
 Ví dụ ở mục Tham chiếu mạnh
-```
+``` Swift
 unowned var tenant: Person?
 ```
 
@@ -148,7 +148,7 @@ unowned var tenant: Person?
 “Strong Reference Cycles” hoặc “Retain Cycles” trong Swift là tình huống mà hai đối tượng hoặc nhiều hơn tham chiếu lẫn nhau thông qua tham chiếu mạnh, tạo ra một chuỗi tham chiếu không bao giờ giải phóng.
 -> Gây rò rỉ bộ nhớ, vì ARC không thể giải phóng bất kỳ đối tượng nào trong chuỗi tham chiếu, ngay cả khi chúng không còn được sử dụng nữa.
 Ví dụ 
-```
+``` Swift
 class Person {
     let name: String
     init(name: String) { self.name = name }
@@ -202,7 +202,7 @@ Xảy ra khi một ```closure``` nắm giữ một tham chiếu mạnh đến m�
 Để giải quyết vấn đề này, có thể sử dụng ```[weak self]``` hoặc ```[unowned self]``` trong danh sách nắm giữ ```(capture list)``` của ```closure``` để tạo một tham chiếu yếu hoặc không sở hữu đến ```self```. Giúp ngăn chặn việc tạo ra chu trình tham chiếu mạnh.
 
 Ví dụ:
-```
+``` Swift
 class MyClass {
     var value = 0
     lazy var closure: () -> () = {
@@ -230,7 +230,7 @@ Khi gán ```nil``` cho ```instance```, đối tượng ```MyClass``` không đư
 
 Để giải quyết vấn đề này, có thể sử dụng ```[weak self]``` hoặc ```[unowned self]``` trong danh sách nắm giữ (capture list) của ```closure```:
 
-```
+``` Swift
 class MyClass {
     var value = 0
     lazy var closure: () -> () = { [weak self] in
@@ -284,7 +284,7 @@ Tuy nhiên, chúng vẫn có thể xuất hiện trong một số trường hợ
 #### Ví Dụ 1: Trỏ Treo Với ```unowned Reference```
 Nếu một biến ```unowned``` tham chiếu đến một đối tượng đã bị ```deallocated```, truy cập nó sẽ gây lỗi crash.
 
-```
+``` Swift
 class Person {
     var name: String
     var card: CreditCard?
@@ -339,7 +339,7 @@ Trong Swift, ```UnsafePointer``` cho phép truy cập trực tiếp vào vùng n
 
 ❌ Ví dụ Lỗi: Trả về con trỏ trỏ vào biến cục bộ
 
-```
+``` Swift
 func getPointer() -> UnsafePointer<Int> {
     var number = 42
     return UnsafePointer(&number)  // ❌ Trả về con trỏ trỏ đến biến cục bộ
@@ -361,7 +361,7 @@ Truy cập ```ptr.pointee``` sẽ dẫn đến hành vi không xác định ```(
 
 ✅ Cách Đúng: Dùng ```withUnsafePointer```
 
-```
+``` Swift
 func getPointerSafely() {
     var number = 42
     withUnsafePointer(to: &number) { ptr in
@@ -374,7 +374,7 @@ getPointerSafely()  // Output: 42
 
 📌 Lý do đúng:
 
-```withUnsafePointer(to:)``` đảm bảo number vẫn tồn tại trong suốt thời gian ```closure``` chạy.
+```withUnsafePointer(to:)``` đảm bảo ```number``` vẫn tồn tại trong suốt thời gian ```closure``` chạy.
 
 Khi ```withUnsafePointer``` kết thúc, con trỏ không còn hợp lệ, tránh lỗi.
 
@@ -382,7 +382,7 @@ Khi ```withUnsafePointer``` kết thúc, con trỏ không còn hợp lệ, trán
 
 ❌ Ví dụ Lỗi: Dùng con trỏ trỏ đến vùng nhớ đã bị giải phóng
 
-```
+``` Swift
 func createPointer() -> UnsafeMutablePointer<Int> {
     let ptr = UnsafeMutablePointer<Int>.allocate(capacity: 1)
     ptr.initialize(to: 100)
@@ -404,7 +404,7 @@ Khi truy cập ```ptr.pointee```, nó trỏ vào vùng nhớ không hợp lệ, 
 
 ✅ Cách Đúng: Giải phóng bộ nhớ sau khi sử dụng
 
-```
+``` Swift
 func createPointerSafely() -> UnsafeMutablePointer<Int> {
     let ptr = UnsafeMutablePointer<Int>.allocate(capacity: 1)
     ptr.initialize(to: 100)
@@ -424,7 +424,7 @@ Chỉ ```deallocate()``` khi chắc chắn không còn cần con trỏ.
 #### Trỏ Treo Khi Làm Việc Với Mảng (UnsafeBufferPointer)
 ❌ Ví dụ Lỗi: Trả về con trỏ trỏ vào vùng nhớ tạm thời
 
-```
+``` Swift
 func getBufferPointer() -> UnsafeBufferPointer<Int> {
     let array = [1, 2, 3]
     return UnsafeBufferPointer(start: array, count: array.count) // ❌ Trỏ vào vùng nhớ bị giải phóng
@@ -444,7 +444,7 @@ print(buffer[0])  // ❌ Lỗi: Truy cập vào vùng nhớ không hợp lệ
 
 ✅ Cách Đúng: Dùng ```withUnsafeBufferPointer```
 
-```
+``` Swift
 let array = [1, 2, 3]
 
 array.withUnsafeBufferPointer { buffer in
@@ -469,7 +469,7 @@ Dùng ```withUnsafePointer``` hoặc ```withUnsafeBufferPointer``` để tránh 
 #### Ví Dụ 3: Trỏ Treo Với Objective-C API
 Khi sử dụng Core Foundation hoặc Objective-C APIs, có thể xảy ra lỗi trỏ treo do cách quản lý bộ nhớ khác nhau.
 
-```
+``` Swift
 import Foundation
 
 class MyClass {
@@ -491,7 +491,7 @@ obj = nil  // ❌ Nếu callback vẫn giữ `self`, có thể gây dangling ref
 
 Sử dụng ```[weak self]``` trong ```closures``` để tránh giữ tham chiếu không hợp lệ.
 
-```
+``` Swift
 obj?.callback = { [weak obj] in
     print("Callback executed safely")
 }
